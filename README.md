@@ -2,6 +2,9 @@
 
 A full-stack web application for managing a public library's catalog, events, patrons, and staff.
 
+## Live Demo
+https://public-library-two.vercel.app
+
 ## Demo Credentials
 
 ### Patron Login
