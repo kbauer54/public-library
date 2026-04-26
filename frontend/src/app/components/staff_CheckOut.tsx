@@ -1,0 +1,271 @@
+import { useState, useEffect } from "react";
+import { ScanLine, User, AlertCircle, CheckCircle } from "lucide-react";
+
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Label } from "../components/ui/label";
+
+import { BooksAPI } from "../../api/books";
+import { CopiesAPI } from "../../api/copies";
+import { PatronsAPI } from "../../api/patrons";
+
+interface CheckOutResult {
+  success: boolean;
+  message: string;
+  itemTitle?: string;
+  patronName?: string;
+  dueDate?: string;
+  alerts?: string[];
+}
+
+export default function CheckOut() {
+  const [books, setBooks] = useState([]);
+  const [copies, setCopies] = useState([]);
+  const [patrons, setPatrons] = useState([]);
+
+  const [barcode, setBarcode] = useState("");
+  const [patronId, setPatronId] = useState("");
+  const [result, setResult] = useState<CheckOutResult | null>(null);
+
+  const [loading, setLoading] = useState(true);
+
+  // Load real data
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [bookData, copyData, patronData] = await Promise.all([
+          BooksAPI.getAll(),
+          CopiesAPI.getAll(),
+          PatronsAPI.getAll(),
+        ]);
+
+        setBooks(bookData);
+        setCopies(copyData);
+        setPatrons(patronData);
+      } catch (err) {
+        console.error("Failed to load checkout data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  const handleCheckOut = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Find copy by barcode
+    const copy = copies.find((c: any) => c.barcode === barcode);
+    if (!copy) {
+      setResult({
+        success: false,
+        message: "Item not found. Please check the barcode and try again.",
+      });
+      return;
+    }
+
+    // Find book
+    const book = books.find((b: any) => b.id === copy.book_id);
+    if (!book) {
+      setResult({
+        success: false,
+        message: "Book information not found.",
+      });
+      return;
+    }
+
+    // Find patron (by card number OR ID)
+    const patron = patrons.find(
+      (p: any) => p.card_number === patronId || String(p.id) === patronId
+    );
+
+    if (!patron) {
+      setResult({
+        success: false,
+        message: "Patron not found. Please check the card number and try again.",
+      });
+      return;
+    }
+
+    // Check if copy is available
+    if (copy.status !== "Available") {
+      setResult({
+        success: false,
+        message: `This item is currently ${copy.status.toLowerCase()} and cannot be checked out.`,
+      });
+      return;
+    }
+
+    // Patron alerts
+    const alerts: string[] = [];
+
+    if (patron.status === "Suspended") {
+      setResult({
+        success: false,
+        message:
+          "This patron account is suspended. Please resolve account issues before checking out items.",
+      });
+      return;
+    }
+
+    if (patron.fines > 10) {
+      alerts.push(
+        `Patron has $${Number(patron.fines).toFixed(
+          2
+        )} in fines. Please collect payment.`
+      );
+    }
+
+    if (patron.current_loans >= 5) {
+      alerts.push("Patron has reached the maximum loan limit.");
+    }
+
+    // Calculate due date (14 days)
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 14);
+
+    const dueDateStr = dueDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    setResult({
+      success: true,
+      message: "Item checked out successfully!",
+      itemTitle: book.title,
+      patronName: patron.name,
+      dueDate: dueDateStr,
+      alerts: alerts.length > 0 ? alerts : undefined,
+    });
+
+    setBarcode("");
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <p className="text-neutral-600">Loading checkout data…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold mb-2">Check Out</h1>
+        <p className="text-neutral-600">
+          Scan item barcode and patron card to complete checkout
+        </p>
+      </div>
+
+      <div className="max-w-2xl">
+        <form
+          onSubmit={handleCheckOut}
+          className="bg-white rounded-lg border border-neutral-200 p-6 mb-6"
+        >
+          <div className="space-y-6">
+            {/* Patron ID */}
+            <div>
+              <Label htmlFor="patronId" className="flex items-center gap-2 mb-2">
+                <User className="w-4 h-4" />
+                Patron Card Number
+              </Label>
+              <Input
+                id="patronId"
+                type="text"
+                placeholder="Enter or scan patron card number"
+                value={patronId}
+                onChange={(e) => setPatronId(e.target.value)}
+                required
+                className="text-base"
+              />
+              <p className="text-sm text-neutral-500 mt-1">
+                Example: LIB1001, LIB1002, LIB1003
+              </p>
+            </div>
+
+            {/* Barcode */}
+            <div>
+              <Label htmlFor="barcode" className="flex items-center gap-2 mb-2">
+                <ScanLine className="w-4 h-4" />
+                Item Barcode
+              </Label>
+              <Input
+                id="barcode"
+                type="text"
+                placeholder="Enter or scan item barcode"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                required
+                className="text-base"
+              />
+              <p className="text-sm text-neutral-500 mt-1">
+                Example: 100001, 100004, 100006
+              </p>
+            </div>
+
+            <Button type="submit" className="w-full" size="lg">
+              Complete Check Out
+            </Button>
+          </div>
+        </form>
+
+        {/* Result Display */}
+        {result && (
+          <div
+            className={`rounded-lg border p-6 ${
+              result.success
+                ? "bg-green-50 border-green-200"
+                : "bg-red-50 border-red-200"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {result.success ? (
+                <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+              )}
+
+              <div className="flex-1">
+                <h3
+                  className={`font-semibold mb-2 ${
+                    result.success ? "text-green-900" : "text-red-900"
+                  }`}
+                >
+                  {result.message}
+                </h3>
+
+                {result.success && (
+                  <div className="space-y-2 text-sm text-green-900">
+                    <p>
+                      <strong>Item:</strong> {result.itemTitle}
+                    </p>
+                    <p>
+                      <strong>Patron:</strong> {result.patronName}
+                    </p>
+                    <p>
+                      <strong>Due Date:</strong> {result.dueDate}
+                    </p>
+                  </div>
+                )}
+
+                {result.alerts && result.alerts.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-yellow-200">
+                    <p className="font-medium text-yellow-900 mb-2">Alerts:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-yellow-900">
+                      {result.alerts.map((alert, index) => (
+                        <li key={index}>{alert}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
