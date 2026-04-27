@@ -32,7 +32,7 @@ router.get("/:id/loans", async (req, res) => {
       FROM loans l
       JOIN inventory i ON l.inventory_id = i.inventory_id
       JOIN books b ON i.book_id = b.book_id
-      WHERE l.patron_id = ?
+      WHERE l.patron_id = ? AND l.status = 'active'
       ORDER BY l.due_date ASC
     `, [req.params.id]);
     res.json(rows);
@@ -51,7 +51,7 @@ router.get("/:id/holds", async (req, res) => {
         ROW_NUMBER() OVER (PARTITION BY r.book_id ORDER BY r.reservation_date) AS position
       FROM reservations r
       JOIN books b ON r.book_id = b.book_id
-      WHERE r.patron_id = ?
+      WHERE r.patron_id = ? AND r.status = 'waiting'
       ORDER BY r.reservation_date ASC
     `, [req.params.id]);
     
