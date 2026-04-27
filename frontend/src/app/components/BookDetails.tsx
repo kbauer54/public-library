@@ -8,11 +8,12 @@ import { Separator } from './ui/separator';
 import { BooksAPI } from '../../api/books';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
+import { api } from '../../api';
 
 export default function BookDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, loans, holds } = useAuth();
+  const { user, loans, holds, setHolds } = useAuth();
   const [book, setBook] = useState<any>(null);
   const [similarBooks, setSimilarBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +136,7 @@ export default function BookDetails() {
       toast.error("Please log in to place holds");
       return;
     }
-    
+
     try {
       const res = await api.post("/api/holds", {
         patronId: user.id,
@@ -145,7 +146,7 @@ export default function BookDetails() {
       // Update global holds in AuthContext
       if (res.data?.holds) {
         // This updates the holds everywhere (including MyAccount)
-        user.setHolds(res.data.holds);
+        setHolds(res.data.holds);
       }
 
       const message = branchName

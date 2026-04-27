@@ -11,6 +11,8 @@ interface AuthContextType {
   user: User | null;
   loans: any[];
   holds: any[];
+  setLoans: React.Dispatch<React.SetStateAction<any[]>>;
+  setHolds: React.Dispatch<React.SetStateAction<any[]>>;
   login: (email: string, password: string) => Promise<boolean>;
   loginStaff: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -85,7 +87,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loans, holds, setHolds, login, loginStaff, logout, register }}>
+    <AuthContext.Provider value={{
+      user,
+      loans,
+      holds,
+      setLoans,
+      setHolds,
+      login,
+      loginStaff,
+      logout,
+      register
+    }}>
       {children}
     </AuthContext.Provider>
   );
