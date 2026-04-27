@@ -90,7 +90,7 @@ export default function PatronLookup() {
     return (
       (patron.name ?? "").toLowerCase().includes(q) ||
       (patron.email ?? "").toLowerCase().includes(q) ||
-      (patron.card_number ?? "").toLowerCase().includes(q)
+      String(patron.patron_id ?? "").includes(q)
     );
   });
 
@@ -98,7 +98,7 @@ export default function PatronLookup() {
   // Selected patron (SAFE + consistent)
   // ----------------------------
   const patron = patrons.find(
-    (p) => Number(p.id) === Number(selectedPatron)
+    (p) => p.patron_id === selectedPatron
   );
 
   // ----------------------------
@@ -148,14 +148,14 @@ export default function PatronLookup() {
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Name, email, card number..."
+                placeholder="Name, email, ..."
               />
             </div>
 
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {filteredPatrons.map((p) => (
                 <div
-                  key={p.id}
+                  key={p.patron_id}
                   onClick={() => setSelectedPatron(Number(p.id))}
                   className={`p-3 border rounded-lg cursor-pointer ${
                     selectedPatron === Number(p.id)
@@ -166,7 +166,7 @@ export default function PatronLookup() {
                   <p className="font-medium">{p.name}</p>
                   <p className="text-sm text-neutral-600">{p.email}</p>
                   <p className="text-xs text-neutral-500">
-                    Card: {p.card_number}
+                    Card: {p.patron_id}
                   </p>
                 </div>
               ))}
@@ -196,7 +196,7 @@ export default function PatronLookup() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span>Patron ID: {patron.id}</span>
+                    <span>Patron ID: {patron.patron_id}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
