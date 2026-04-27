@@ -55,8 +55,8 @@ export default function StaffCheckOut() {
       ]);
 
       // Books: backend returns { data: { data: [...] } }
-      const booksArray = Array.isArray(bookData?.data?.data)
-        ? bookData.data.data
+      const booksArray = Array.isArray(bookData?.data)
+        ? bookData.data
         : [];
       setBooks(booksArray);
 
@@ -149,14 +149,14 @@ export default function StaffCheckOut() {
     });
 
     // BACKEND CALL (now valid because function is async)
-    const res = await fetch("/api/checkout", {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/loans`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        bookId: book.id,
-        patronId: patron.id,
+        book_id: book.id,
+        patron_id: patron.id,
       }),
     });
 
