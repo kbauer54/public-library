@@ -61,7 +61,9 @@ export default function StaffCheckOut() {
       setBooks(booksArray);
 
       // Patrons: backend returns { data: [...] }
-      const patronsArray = Array.isArray(patronData?.data)
+      const patronsArray = Array.isArray(patronData)
+        ? patronData
+        : Array.isArray(patronData?.data)
         ? patronData.data
         : [];
       setPatrons(patronsArray);
