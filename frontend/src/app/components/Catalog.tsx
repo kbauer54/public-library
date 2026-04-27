@@ -148,9 +148,26 @@ export default function Catalog() {
     }
   };
 
-  const handlePlaceHold = (book: any) => {
+  const handlePlaceHold = async (book: any) => {
     if (!user) return toast.error("Please log in to place holds");
-    toast.success(`Hold placed for "${book.title}"`);
+    try {
+      const token = localStorage.getItem('library_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/holds`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ patronId: user.id, bookId: book.id })
+      });
+      if (res.ok) {
+        toast.success(`Hold placed for "${book.title}"`);
+      } else {
+        toast.error("Failed to place hold");
+      }
+    } catch (err) {
+      toast.error("Failed to place hold");
+    }
   };
 
   const clearAllFilters = () => {
@@ -440,7 +457,8 @@ export default function Catalog() {
                 return (
                   <Card
                     key={book.id}
-                    className="overflow-hidden hover:shadow-md transition-shadow"
+                    className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/catalog/${book.id}`)}
                   >
                     <div className="flex">
                       <div className="w-32 flex-shrink-0 bg-gray-100">
