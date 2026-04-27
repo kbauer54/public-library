@@ -81,7 +81,10 @@ export default function CheckOut() {
     }
 
     // Find patron (by ID)
-    const patron = patrons.find((p: any) => String(p.id) === patronId);
+      const patron = patrons.find(
+        (p: any) =>
+          String(p.id).trim() === String(patronId).trim()
+      );
 
     if (!patron) {
       setResult({
@@ -125,12 +128,7 @@ export default function CheckOut() {
       day: "numeric",
     });
 
-    //Update UI state
-    setCopies((prev) =>
-      prev.map((c) =>
-        c.barcode === barcode ? { ...c, status: "Checked Out" } : c
-      )
-    );
+
 
     setPatrons((prev) =>
       prev.map((p) =>
@@ -191,7 +189,7 @@ export default function CheckOut() {
               <Input
                 id="patronId"
                 type="text"
-                placeholder="Enter or scan patron card number"
+                placeholder="Enter or scan ISBN"
                 value={patronId}
                 onChange={(e) => setPatronId(e.target.value)}
                 required
