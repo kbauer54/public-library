@@ -47,7 +47,8 @@ router.get("/:id/holds", async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT r.reservation_id AS id, r.status,
-        b.title AS bookTitle
+        b.title AS bookTitle,
+        ROW_NUMBER() OVER (PARTITION BY r.book_id ORDER BY r.reservation_date) AS position
       FROM reservations r
       JOIN books b ON r.book_id = b.book_id
       WHERE r.patron_id = ?

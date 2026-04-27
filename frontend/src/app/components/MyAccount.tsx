@@ -7,7 +7,7 @@ import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 export default function MyAccount() {
-  const { user, loans, holds, setLoans, logout } = useAuth();
+  const { user, loans, holds, setLoans, setHolds, logout } = useAuth();
   const navigate = useNavigate();
 
   if (!user) {
@@ -64,6 +64,21 @@ export default function MyAccount() {
       }
     } catch (err) {
       console.error('Failed to return book:', err);
+    }
+  };
+
+  const handleCancelHold = async (holdId: string) => {
+    const token = localStorage.getItem('library_token');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/holds/${holdId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setHolds(holds.filter(h => h.id !== holdId));
+      }
+    } catch (err) {
+      console.error('Failed to cancel hold:', err);
     }
   };
 
@@ -291,7 +306,7 @@ export default function MyAccount() {
                       <Badge variant="outline">
                         Position #{hold.position}
                       </Badge>
-                      <Button variant="link" size="sm" className="h-auto p-0 mt-1 block">
+                      <Button variant="link" size="sm" className="h-auto p-0 mt-1 block text-red-600" onClick={() => handleCancelHold(hold.id)}>
                         Cancel Hold
                       </Button>
                     </div>

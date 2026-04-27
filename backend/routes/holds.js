@@ -66,4 +66,14 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.delete("/:id", async (req, res) => {
+  try {
+    await db.query("DELETE FROM reservations WHERE reservation_id = ?", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error cancelling hold:", err);
+    res.status(500).json({ error: "Failed to cancel hold" });
+  }
+});
+
 export default router;
