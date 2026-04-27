@@ -213,6 +213,7 @@ export default function MyAccount() {
                         <Button variant="link" size="sm" className="h-auto p-0 mt-1">
                           Renew
                         </Button>
+                        {" "}
                         <Button variant="link" size="sm" className="h-auto p-0 mt-1 text-red-600" onClick={() => handleReturn(loan.id)}>
                           Return
                         </Button>
