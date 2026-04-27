@@ -6,7 +6,6 @@ import { Button } from "../components/ui/button";
 import { Label } from "../components/ui/label";
 
 import { BooksAPI } from "../../api/books";
-import { CopiesAPI } from "../../api/copies";
 import { PatronsAPI } from "../../api/patrons";
 import { LoansAPI } from "../../api/loans";
 
@@ -21,7 +20,6 @@ interface CheckOutResult {
 
 export default function CheckOut() {
   const [books, setBooks] = useState([]);
-  const [copies, setCopies] = useState([]);
   const [patrons, setPatrons] = useState([]);
 
   const [barcode, setBarcode] = useState("");
@@ -56,8 +54,10 @@ export default function CheckOut() {
     e.preventDefault();
 
     try{
-    // Find copy by barcode
-    const book = books.find((c: any) => c.isbn === barcode);
+    // Find copy by ISBN
+    const book = books.find(
+      (b: any) => String(b.isbn).trim() === String(barcode).trim()
+    );
     if (!book) {
       setResult({
         success: false,
