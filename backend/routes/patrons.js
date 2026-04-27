@@ -18,7 +18,7 @@ router.get("/:id/loans", async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT l.loan_id AS id, l.status, l.due_date AS dueDate, 
-             b.title AS bookTitle, b.author
+        b.title AS bookTitle
       FROM loans l
       JOIN inventory i ON l.inventory_id = i.inventory_id
       JOIN books b ON i.book_id = b.book_id
@@ -36,12 +36,12 @@ router.get("/:id/loans", async (req, res) => {
 router.get("/:id/holds", async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT h.hold_id AS id, h.status, h.position,
-             b.title AS bookTitle, b.author
-      FROM holds h
-      JOIN books b ON h.book_id = b.book_id
-      WHERE h.patron_id = ?
-      ORDER BY h.created_at ASC
+      SELECT r.reservation_id AS id, r.status,
+        b.title AS bookTitle
+      FROM reservations r
+      JOIN books b ON r.book_id = b.book_id
+      WHERE r.patron_id = ?
+      ORDER BY r.reservation_date ASC
     `, [req.params.id]);
     res.json(rows);
   } catch (err) {
