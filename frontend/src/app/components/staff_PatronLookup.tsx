@@ -5,7 +5,6 @@ import {
   Phone,
   CreditCard,
   AlertTriangle,
-  CheckCircle,
 } from "lucide-react";
 
 import { Input } from "../components/ui/input";
@@ -24,37 +23,70 @@ import {
 import { PatronsAPI } from "../../api/patrons";
 import { LoansAPI } from "../../api/loans";
 import { HoldsAPI } from "../../api/holds";
-import { BooksAPI } from "../../api/books";
 
 export default function PatronLookup() {
   const [patrons, setPatrons] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
   const [holds, setHolds] = useState<any[]>([]);
-  const [books, setBooks] = useState<any[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPatron, setSelectedPatron] = useState<number | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // Load all patron-related data
+  // ----------------------------
+  // Load patrons (FIXED)
+  // ----------------------------
   useEffect(() => {
-    if (selectedPatron) {
-      loadPatronData(String(selectedPatron));
+    PatronsAPI.getAll().then((res) => {
+      const data = res.data?.data ?? res.data ?? [];
+      setPatrons(data);
+    });
+  }, []);
+
+  // ----------------------------
+  // Load loans + holds when patron changes
+  // ----------------------------
+  useEffect(() => {
+    if (selectedPatron !== null) {
+      loadPatronData(selectedPatron);
+    } else {
+      setLoans([]);
+      setHolds([]);
     }
   }, [selectedPatron]);
 
-  // Load loans + holds for selected patron
-  const loadPatronData = async (patronId: string) => {
+  const loadPatronData = async (patronId: number) => {
+  try {
     const [loanRes, holdRes] = await Promise.all([
-      LoansAPI.getByPatron(patronId),
-      HoldsAPI.getByPatron(patronId),
+      LoansAPI.getByPatron(String(patronId)),
+      HoldsAPI.getByPatron(String(patronId)),
     ]);
 
-    setLoans(loanRes.data);
-    setHolds(holdRes.data);
-  };
+    console.log("📦 LOANS:", loanRes);
+    console.log("📦 HOLDS:", holdRes);
 
-  // Filter patrons
+    const loansData =
+      loanRes?.data?.data ??
+      loanRes?.data ??
+      [];
+
+    const holdsData =
+      holdRes?.data?.data ??
+      holdRes?.data ??
+      [];
+
+    setLoans(Array.isArray(loansData) ? loansData : []);
+    setHolds(Array.isArray(holdsData) ? holdsData : []);
+  } catch (err) {
+    console.error("❌ Failed loading patron data:", err);
+    setLoans([]);
+    setHolds([]);
+  }
+};
+
+  // ----------------------------
+  // Filter patrons (SAFE)
+  // ----------------------------
   const filteredPatrons = patrons.filter((patron) => {
     const q = searchQuery.toLowerCase();
 
@@ -65,31 +97,37 @@ export default function PatronLookup() {
     );
   });
 
-  //  Selected patron object
-  const patron = selectedPatron
-    ? patrons.find((p) => p.id === selectedPatron)
-    : null;
+  // ----------------------------
+  // Selected patron (SAFE + consistent)
+  // ----------------------------
+  const patron = patrons.find(
+    (p) => Number(p.id) === Number(selectedPatron)
+  );
 
-  // Patron loans
-  const patronLoans = loans;
-
-  //  Patron holds
-  const patronHolds = holds;
-
+  // ----------------------------
   // Waive fines
-  const waiveFines = async (patronId: string) => {
-    await PatronsAPI.update(patronId, { fines: 0 });
-    const updated = await PatronsAPI.getOne(patronId);
+  // ----------------------------
+  const waiveFines = async (patronId: number) => {
+    await PatronsAPI.update(String(patronId), { fines: 0 });
+
+    const updated = await PatronsAPI.getOne(String(patronId));
 
     setPatrons((prev) =>
-      prev.map((p) => (p.id === patronId ? updated.data : p))
+      prev.map((p) =>
+        Number(p.id) === Number(patronId) ? updated.data : p
+      )
     );
   };
 
-  //  Renew item
-  const renewItem = async (loanId: string) => {
-    await LoansAPI.renew(loanId);
-    loadPatronData(patron.id);
+  // ----------------------------
+  // Renew loan
+  // ----------------------------
+  const renewItem = async (loanId: number) => {
+    await LoansAPI.renew(String(loanId));
+
+    if (selectedPatron !== null) {
+      loadPatronData(selectedPatron);
+    }
   };
 
   return (
@@ -102,21 +140,18 @@ export default function PatronLookup() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Search Panel */}
+        {/* SEARCH */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg border border-neutral-200 p-6">
-            <Label htmlFor="patronSearch" className="mb-2 block">
-              Search Patrons
-            </Label>
+          <div className="bg-white rounded-lg border p-6">
+            <Label className="mb-2 block">Search Patrons</Label>
+
             <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <Search className="absolute left-3 top-3 w-4 h-4 text-neutral-400" />
               <Input
-                id="patronSearch"
-                type="text"
-                placeholder="Name, email, or card number..."
+                className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                placeholder="Name, email, card number..."
               />
             </div>
 
@@ -124,11 +159,11 @@ export default function PatronLookup() {
               {filteredPatrons.map((p) => (
                 <div
                   key={p.id}
-                  onClick={() => setSelectedPatron(p.id)}
-                  className={`p-3 rounded-lg border cursor-pointer ${
-                    selectedPatron === p.id
+                  onClick={() => setSelectedPatron(Number(p.id))}
+                  className={`p-3 border rounded-lg cursor-pointer ${
+                    selectedPatron === Number(p.id)
                       ? "bg-blue-50 border-blue-300"
-                      : "bg-white border-neutral-200"
+                      : ""
                   }`}
                 >
                   <p className="font-medium">{p.name}</p>
@@ -142,47 +177,43 @@ export default function PatronLookup() {
           </div>
         </div>
 
-        {/* Patron Details */}
+        {/* DETAILS */}
         <div className="lg:col-span-2">
           {!patron ? (
-            <div className="bg-white rounded-lg border border-neutral-200 p-12 text-center">
-              <Search className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
-              <p className="text-neutral-500">Search for a patron to begin</p>
+            <div className="p-12 text-center border rounded-lg">
+              <Search className="w-10 h-10 mx-auto text-neutral-300" />
+              <p className="text-neutral-500 mt-2">
+                Select a patron to view details
+              </p>
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Patron Info */}
-              <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold">{patron.name}</h3>
-                  <Button onClick={() => setIsEditDialogOpen(true)}>
-                    Edit Info
-                  </Button>
-                </div>
+              {/* INFO */}
+              <div className="bg-white border rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">{patron.name}</h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-3">
                   <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-neutral-500" />
-                    <span>{patron.email}</span>
+                    <Mail className="w-4 h-4" />
+                    {patron.email}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-neutral-500" />
-                    <span>{patron.phone}</span>
+                    <Phone className="w-4 h-4" />
+                    {patron.phone}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-neutral-500" />
-                    <span>{patron.card_number}</span>
+                    <CreditCard className="w-4 h-4" />
+                    {patron.card_number}
                   </div>
 
                   {patron.fines > 0 && (
                     <div className="flex items-center gap-2 text-red-600">
                       <AlertTriangle className="w-4 h-4" />
-                      <span>Fines: ${patron.fines.toFixed(2)}</span>
+                      Fines: ${patron.fines}
                       <Button
                         size="sm"
-                        variant="outline"
                         onClick={() => waiveFines(patron.id)}
                       >
                         Waive
@@ -192,62 +223,48 @@ export default function PatronLookup() {
                 </div>
               </div>
 
-              {/* Loans */}
-              <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                <h3 className="text-lg font-semibold mb-4">Current Loans</h3>
+              {/* LOANS */}
+              <div className="bg-white border rounded-lg p-6">
+                <h3 className="font-semibold mb-3">Loans</h3>
 
-                {patronLoans.length === 0 ? (
-                  <p className="text-neutral-500">No active loans</p>
+                {loans.length === 0 ? (
+                  <p className="text-neutral-500">No loans</p>
                 ) : (
-                  <div className="space-y-3">
-                    {patronLoans.map((loan) => (
-                      <div
-                        key={loan.id}
-                        className="p-4 border rounded-lg flex items-center justify-between"
-                      >
-                        <div>
-                          <p className="font-medium">{loan.book?.title}</p>
-                          <p className="text-sm text-neutral-600">
-                            Due:{" "}
-                            {new Date(loan.due_date).toLocaleDateString()}
-                          </p>
-                        </div>
-
-                        <Button
-                          size="sm"
-                          onClick={() => renewItem(loan.id)}
-                          disabled={loan.renewals >= 2}
-                        >
-                          Renew
-                        </Button>
+                  loans.map((loan) => (
+                    <div
+                      key={loan.id}
+                      className="flex justify-between border p-3 rounded mb-2"
+                    >
+                      <div>
+                        <p>{loan.book?.title}</p>
+                        <p className="text-sm text-neutral-500">
+                          Due: {new Date(loan.due_date).toLocaleDateString()}
+                        </p>
                       </div>
-                    ))}
-                  </div>
+
+                      <Button
+                        size="sm"
+                        onClick={() => renewItem(loan.id)}
+                      >
+                        Renew
+                      </Button>
+                    </div>
+                  ))
                 )}
               </div>
 
-              {/* Holds */}
-              <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                <h3 className="text-lg font-semibold mb-4">Holds</h3>
+              {/* HOLDS */}
+              <div className="bg-white border rounded-lg p-6">
+                <h3 className="font-semibold mb-3">Holds</h3>
 
-                {patronHolds.length === 0 ? (
+                {holds.length === 0 ? (
                   <p className="text-neutral-500">No holds</p>
                 ) : (
-                  <div className="space-y-3">
-                    {patronHolds.map((hold) => (
-                      <div
-                        key={hold.id}
-                        className="p-4 border rounded-lg flex items-center justify-between"
-                      >
-                        <div>
-                          <p className="font-medium">{hold.book?.title}</p>
-                          <p className="text-sm text-neutral-600">
-                            Status: {hold.status}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  holds.map((hold) => (
+                    <div key={hold.id} className="border p-3 rounded">
+                      {hold.book?.title} — {hold.status}
+                    </div>
+                  ))
                 )}
               </div>
             </div>
@@ -255,35 +272,20 @@ export default function PatronLookup() {
         </div>
       </div>
 
-      {/* Edit Patron Dialog */}
+      {/* EDIT DIALOG */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Patron Info</DialogTitle>
+            <DialogTitle>Edit Patron</DialogTitle>
             <DialogDescription>
-              Update patron contact details.
+              Update patron details
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label>Name</Label>
-              <Input defaultValue={patron?.name} />
-            </div>
-
-            <div>
-              <Label>Email</Label>
-              <Input defaultValue={patron?.email} />
-            </div>
-
-            <div>
-              <Label>Phone</Label>
-              <Input defaultValue={patron?.phone} />
-            </div>
-          </div>
-
           <DialogFooter>
-            <Button onClick={() => setIsEditDialogOpen(false)}>Save</Button>
+            <Button onClick={() => setIsEditDialogOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
