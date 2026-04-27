@@ -130,16 +130,35 @@ export default function BookDetails() {
     toast.success(`"${book.title}" has been added to your loans`);
   };
 
-  const handlePlaceHold = (branchName?: string) => {
+  const handlePlaceHold = async (branchName?: string) => {
     if (!user) {
-      toast.error('Please log in to place holds');
+      toast.error("Please log in to place holds");
       return;
     }
-    const message = branchName 
-      ? `Hold placed for "${book.title}" at ${branchName}`
-      : `Hold placed for "${book.title}"`;
-    toast.success(message);
+
+    try {
+      const res = await api.post("/api/holds", {
+        patronId: user.id,
+        bookId: book.id,
+      });
+
+      // Update global holds in AuthContext
+      if (res.data?.holds) {
+        // This updates the holds everywhere (including MyAccount)
+        user.setHolds(res.data.holds);
+      }
+
+      const message = branchName
+        ? `Hold placed for "${book.title}" at ${branchName}`
+        : `Hold placed for "${book.title}"`;
+
+      toast.success(message);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to place hold");
+    }
   };
+
 
   const handleAddToList = () => {
     if (!user) {
