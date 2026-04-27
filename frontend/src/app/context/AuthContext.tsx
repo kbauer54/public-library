@@ -33,6 +33,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (!user || user.role !== 'patron') return;
+
+    const token = localStorage.getItem('library_token');
+
+    const fetchLoansAndHolds = async () => {
+      try {
+        const [loansRes, holdsRes] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/api/patrons/${user.id}/loans`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${import.meta.env.VITE_API_URL}/api/patrons/${user.id}/holds`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        if (loansRes.ok) setLoans(await loansRes.json());
+        if (holdsRes.ok) setHolds(await holdsRes.json());
+      } catch (err) {
+        console.error('Failed to fetch loans/holds:', err);
+      }
+    };
+
+    fetchLoansAndHolds();
+  }, [user]);
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
