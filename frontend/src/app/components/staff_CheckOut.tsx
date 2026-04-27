@@ -54,15 +54,18 @@ export default function StaffCheckOut() {
         PatronsAPI.getAll(),
       ]);
 
-      // BooksAPI.getAll() already returns the array
-      setBooks(Array.isArray(bookData) ? bookData : []);
+      // Books: backend returns { data: { data: [...] } }
+      const booksArray = Array.isArray(bookData?.data?.data)
+        ? bookData.data.data
+        : [];
+      setBooks(booksArray);
 
-      // PatronsAPI returns { data: [...] }
+      // Patrons: backend returns { data: [...] }
       const patronsArray = Array.isArray(patronData?.data)
         ? patronData.data
         : [];
-
       setPatrons(patronsArray);
+
     } catch (err) {
       console.error("Failed to load checkout data:", err);
       setBooks([]);
