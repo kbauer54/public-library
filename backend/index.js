@@ -10,6 +10,7 @@ import eventRoutes from "./routes/events.js";
 import holdRoutes from "./routes/holds.js";
 import metricRoutes from "./routes/metric.js";   
 import patronRoutes from "./routes/patrons.js";
+import checkoutRoutes from "./routes/checkout.js";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/holds", holdRoutes);
 app.use("/api/staff/metrics", metricRoutes);    
 app.use("/api/patrons", patronRoutes);
+app.use("/api/checkout", checkoutRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log("Backend running on port", process.env.PORT || 3000);

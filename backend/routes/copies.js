@@ -7,7 +7,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT copies.*, books.title 
+      SELECT copies.*, books.title, books.isbn, books.status  
       FROM copies
       JOIN books ON copies.bookId = books.id
     `);

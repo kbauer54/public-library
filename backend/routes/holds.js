@@ -42,4 +42,28 @@ router.post("/", async (req, res) => {
   }
 });
 
+//GET all holds (Staff Dashboard)
+router.get("/", async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        r.reservation_id AS id,
+        r.status,
+        r.reservation_date,
+        b.title AS title,
+        br.name AS pickup_branch
+      FROM reservations r
+      JOIN books b ON r.book_id = b.book_id
+      LEFT JOIN patrons p ON r.patron_id = p.patron_id
+      LEFT JOIN branches br ON p.home_branch_id = br.branch_id
+      ORDER BY r.reservation_date DESC
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching holds:", err);
+    res.status(500).json({ error: "Failed to load holds" });
+  }
+});
+
 export default router;

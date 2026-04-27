@@ -6,7 +6,6 @@ import { Button } from "../components/ui/button";
 import { Label } from "../components/ui/label";
 
 import { BooksAPI } from "../../api/books";
-import { CopiesAPI } from "../../api/copies";
 import { PatronsAPI } from "../../api/patrons";
 
 interface CheckOutResult {
@@ -18,10 +17,28 @@ interface CheckOutResult {
   alerts?: string[];
 }
 
-export default function CheckOut() {
-  const [books, setBooks] = useState([]);
-  const [copies, setCopies] = useState([]);
-  const [patrons, setPatrons] = useState([]);
+type Book = {
+  id: number;
+  title: string;
+  isbn: string;
+  branches: {
+    name: string;
+    available: number;
+    total: number;
+  }[];
+};
+
+type Patron = {
+  id: number;
+  name: string;
+  status: string;
+  fines: number;
+  current_loans: number;
+};
+
+export default function StaffCheckOut() {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [patrons, setPatrons] = useState<Patron[]>([]);
 
   const [barcode, setBarcode] = useState("");
   const [patronId, setPatronId] = useState("");
@@ -29,99 +46,99 @@ export default function CheckOut() {
 
   const [loading, setLoading] = useState(true);
 
-  // Load real data
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [bookData, copyData, patronData] = await Promise.all([
-          BooksAPI.getAll(),
-          CopiesAPI.getAll(),
-          PatronsAPI.getAll(),
-        ]);
+  async function loadData() {
+    try {
+      const [bookData, patronData] = await Promise.all([
+        BooksAPI.getAll(),
+        PatronsAPI.getAll(),
+      ]);
 
-        setBooks(bookData);
-        setCopies(copyData);
-        setPatrons(patronData);
-      } catch (err) {
-        console.error("Failed to load checkout data:", err);
-      } finally {
-        setLoading(false);
-      }
+      // Books: backend returns { data: { data: [...] } }
+      const booksArray = Array.isArray(bookData?.data?.data)
+        ? bookData.data.data
+        : [];
+      setBooks(booksArray);
+
+      // Patrons: backend returns { data: [...] }
+      const patronsArray = Array.isArray(patronData?.data)
+        ? patronData.data
+        : [];
+      setPatrons(patronsArray);
+
+    } catch (err) {
+      console.error("Failed to load checkout data:", err);
+      setBooks([]);
+      setPatrons([]);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    loadData();
-  }, []);
+  loadData();
+}, []);
 
-  const handleCheckOut = (e: React.FormEvent) => {
-    e.preventDefault();
 
-    // Find copy by barcode
-    const copy = copies.find((c: any) => c.barcode === barcode);
-    if (!copy) {
+  const normalize = (v: any) =>
+    String(v ?? "")
+      .replace(/[^0-9Xx]/g, "")
+      .toUpperCase()
+      .trim();
+
+  const handleCheckOut = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    if (!books.length) {
       setResult({
         success: false,
-        message: "Item not found. Please check the barcode and try again.",
+        message: "Books are still loading. Please try again.",
       });
       return;
     }
 
-    // Find book
-    const book = books.find((b: any) => b.id === copy.book_id);
+    const normalizedInput = normalize(barcode);
+
+    const book = books.find((b) => normalize(b.isbn) === normalizedInput);
+
     if (!book) {
       setResult({
         success: false,
-        message: "Book information not found.",
+        message: "Item not found. Please check the ISBN and try again.",
       });
       return;
     }
 
-    // Find patron (by card number OR ID)
     const patron = patrons.find(
-      (p: any) => p.card_number === patronId || String(p.id) === patronId
+      (p) => String(p.id).trim() === String(patronId).trim()
     );
 
     if (!patron) {
       setResult({
         success: false,
-        message: "Patron not found. Please check the card number and try again.",
+        message: "Patron not found.",
       });
       return;
     }
-
-    // Check if copy is available
-    if (copy.status !== "Available") {
-      setResult({
-        success: false,
-        message: `This item is currently ${copy.status.toLowerCase()} and cannot be checked out.`,
-      });
-      return;
-    }
-
-    // Patron alerts
-    const alerts: string[] = [];
 
     if (patron.status === "Suspended") {
       setResult({
         success: false,
-        message:
-          "This patron account is suspended. Please resolve account issues before checking out items.",
+        message: "This patron account is suspended.",
       });
       return;
     }
 
+    const alerts: string[] = [];
+
     if (patron.fines > 10) {
-      alerts.push(
-        `Patron has $${Number(patron.fines).toFixed(
-          2
-        )} in fines. Please collect payment.`
-      );
+      alerts.push(`Patron has $${patron.fines.toFixed(2)} in fines.`);
     }
 
     if (patron.current_loans >= 5) {
       alerts.push("Patron has reached the maximum loan limit.");
     }
 
-    // Calculate due date (14 days)
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 14);
 
@@ -131,17 +148,55 @@ export default function CheckOut() {
       day: "numeric",
     });
 
+    // BACKEND CALL (now valid because function is async)
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bookId: book.id,
+        patronId: patron.id,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      setResult({
+        success: false,
+        message: data.message || "Checkout failed",
+      });
+      return;
+    }
+
+    setPatrons((prev) =>
+      prev.map((p) =>
+        p.id === patron.id
+          ? { ...p, current_loans: p.current_loans + 1 }
+          : p
+      )
+    );
+
     setResult({
       success: true,
       message: "Item checked out successfully!",
       itemTitle: book.title,
       patronName: patron.name,
       dueDate: dueDateStr,
-      alerts: alerts.length > 0 ? alerts : undefined,
+      alerts: alerts.length ? alerts : undefined,
     });
 
     setBarcode("");
-  };
+    setPatronId("");
+  } catch (err) {
+    console.error(err);
+    setResult({
+      success: false,
+      message: "Checkout failed. Please try again.",
+    });
+  }
+};
 
   if (loading) {
     return (
@@ -170,19 +225,19 @@ export default function CheckOut() {
             <div>
               <Label htmlFor="patronId" className="flex items-center gap-2 mb-2">
                 <User className="w-4 h-4" />
-                Patron Card Number
+                Patron ID
               </Label>
               <Input
                 id="patronId"
                 type="text"
-                placeholder="Enter or scan patron card number"
+                placeholder="Enter or scan patron ID"
                 value={patronId}
                 onChange={(e) => setPatronId(e.target.value)}
                 required
                 className="text-base"
               />
               <p className="text-sm text-neutral-500 mt-1">
-                Example: LIB1001, LIB1002, LIB1003
+                Example: 1, 2, 3
               </p>
             </div>
 
@@ -190,7 +245,7 @@ export default function CheckOut() {
             <div>
               <Label htmlFor="barcode" className="flex items-center gap-2 mb-2">
                 <ScanLine className="w-4 h-4" />
-                Item Barcode
+                ISBN
               </Label>
               <Input
                 id="barcode"
@@ -202,7 +257,7 @@ export default function CheckOut() {
                 className="text-base"
               />
               <p className="text-sm text-neutral-500 mt-1">
-                Example: 100001, 100004, 100006
+                Example: 107045821X, 9780143127796
               </p>
             </div>
 
