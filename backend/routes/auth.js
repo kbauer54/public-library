@@ -25,7 +25,7 @@ router.post("/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user: { id: user.patron_id, name: user.name, email: user.email, role: "patron" } });
+    res.json({ token, user: { id: user.patron_id, name: user.name, email: user.email, role: "patron", memberSince: user.membership_date } });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Login failed" });
