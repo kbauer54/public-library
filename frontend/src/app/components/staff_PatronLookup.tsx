@@ -33,13 +33,15 @@ export default function PatronLookup() {
   const [books, setBooks] = useState<any[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPatron, setSelectedPatron] = useState<string | null>(null);
+  const [selectedPatron, setSelectedPatron] = useState<number | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Load all patron-related data
   useEffect(() => {
-    PatronsAPI.getAll().then((res) => setPatrons(res.data));
-  }, []);
+    if (selectedPatron) {
+      loadPatronData(String(selectedPatron));
+    }
+  }, [selectedPatron]);
 
   // Load loans + holds for selected patron
   const loadPatronData = async (patronId: string) => {
@@ -55,10 +57,11 @@ export default function PatronLookup() {
   // Filter patrons
   const filteredPatrons = patrons.filter((patron) => {
     const q = searchQuery.toLowerCase();
+
     return (
-      patron.name.toLowerCase().includes(q) ||
-      patron.email.toLowerCase().includes(q) ||
-      patron.card_number.toLowerCase().includes(q)
+      (patron.name ?? "").toLowerCase().includes(q) ||
+      (patron.email ?? "").toLowerCase().includes(q) ||
+      (patron.card_number ?? "").toLowerCase().includes(q)
     );
   });
 
