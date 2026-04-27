@@ -9,6 +9,7 @@ import copyRoutes from "./routes/copies.js";
 import eventRoutes from "./routes/events.js";
 import holdRoutes from "./routes/holds.js";
 import metricRoutes from "./routes/metric.js";   
+import patronRoutes from "./routes/patrons.js";
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use("/api/copies", copyRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/holds", holdRoutes);
 app.use("/api/staff/metrics", metricRoutes);    
+app.use("/api/patrons", patronRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log("Backend running on port", process.env.PORT || 3000);
