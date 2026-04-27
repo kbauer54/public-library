@@ -54,7 +54,7 @@ export default function StaffCheckOut() {
           PatronsAPI.getAll(),
         ]);
 
-        setBooks(bookData.data?.data ?? []);
+        setBooks(bookData.data?.data ?? bookData.data ?? []);
         setPatrons(patronData.data ?? patronData);
       } catch (err) {
         console.error("Failed to load checkout data:", err);
