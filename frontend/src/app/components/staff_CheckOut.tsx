@@ -7,7 +7,6 @@ import { Label } from "../components/ui/label";
 
 import { BooksAPI } from "../../api/books";
 import { PatronsAPI } from "../../api/patrons";
-import { LoansAPI } from "../../api/loans";
 
 interface CheckOutResult {
   success: boolean;
@@ -18,9 +17,28 @@ interface CheckOutResult {
   alerts?: string[];
 }
 
-export default function CheckOut() {
-  const [books, setBooks] = useState([]);
-  const [patrons, setPatrons] = useState([]);
+type Book = {
+  id: number;
+  title: string;
+  isbn: string;
+  branches: {
+    name: string;
+    available: number;
+    total: number;
+  }[];
+};
+
+type Patron = {
+  id: number;
+  name: string;
+  status: string;
+  fines: number;
+  current_loans: number;
+};
+
+export default function StaffCheckOut() {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [patrons, setPatrons] = useState<Patron[]>([]);
 
   const [barcode, setBarcode] = useState("");
   const [patronId, setPatronId] = useState("");
@@ -28,7 +46,6 @@ export default function CheckOut() {
 
   const [loading, setLoading] = useState(true);
 
-  // Load real data
   useEffect(() => {
     async function loadData() {
       try {
@@ -37,9 +54,8 @@ export default function CheckOut() {
           PatronsAPI.getAll(),
         ]);
 
-
-        setBooks(bookData.data?.data ?? bookData.data ?? []);
-        setPatrons(patronData);
+        setBooks(bookData.data?.data ?? []);
+        setPatrons(patronData.data ?? patronData);
       } catch (err) {
         console.error("Failed to load checkout data:", err);
       } finally {
@@ -49,121 +65,115 @@ export default function CheckOut() {
 
     loadData();
   }, []);
-  
-    const normalizeISBN = (val: any) =>
-      String(val ?? "")
-        .replace(/[^0-9Xx]/g, "") // remove EVERYTHING except digits/X
-        .toUpperCase()
-        .trim();
 
-    const normalizedInput = normalizeISBN(barcode);
+  const normalize = (v: any) =>
+    String(v ?? "")
+      .replace(/[^0-9Xx]/g, "")
+      .toUpperCase()
+      .trim();
 
-    console.log("INPUT:", normalizedInput);
-    console.log("BOOK ISBNs:", books.map((b: any) => normalizeISBN(b.isbn)));
-
-    const book = books.find(
-      (b: any) => normalizeISBN(b.isbn) === normalizedInput
-    );
   const handleCheckOut = (e: React.FormEvent) => {
     e.preventDefault();
 
-    try{
-    // Find copy by ISBN
-    const book = books.find(
-      (b: any) => String(b.isbn).trim() === String(barcode).trim()
-    );
-    if (!book) {
-      setResult({
-        success: false,
-        message: "Item not found. Please check the barcode and try again.",
-      });
-      return;
-    }
+    try {
+      if (!books.length) {
+        setResult({
+          success: false,
+          message: "Books are still loading. Please try again.",
+        });
+        return;
+      }
 
-    //Check availability using inventory/branches
-    const totalAvailable = book.branches.reduce(
-      (sum: number, br: any) => sum + br.available,
-      0
-    );
+      const normalizedInput = normalize(barcode);
 
-    if (totalAvailable <= 0) {
-      setResult({
-        success: false,
-        message: "No available copies at any branch.",
-      });
-      return;
-    }
+      const book = books.find(
+        (b) => normalize(b.isbn) === normalizedInput
+      );
 
-    // Find patron (by ID)
+      if (!book) {
+        setResult({
+          success: false,
+          message: "Item not found. Please check the ISBN and try again.",
+        });
+        return;
+      }
+
+      const totalAvailable = book.branches.reduce(
+        (sum, br) => sum + br.available,
+        0
+      );
+
+      if (totalAvailable <= 0) {
+        setResult({
+          success: false,
+          message: "No available copies at any branch.",
+        });
+        return;
+      }
+
       const patron = patrons.find(
-        (p: any) =>
-          String(p.id).trim() === String(patronId).trim()
+        (p) => String(p.id).trim() === String(patronId).trim()
       );
 
-    if (!patron) {
-      setResult({
-        success: false,
-        message: "Patron not found. Please check the card number and try again.",
+      if (!patron) {
+        setResult({
+          success: false,
+          message: "Patron not found. Please check the ID and try again.",
+        });
+        return;
+      }
+
+      const alerts: string[] = [];
+
+      if (patron.status === "Suspended") {
+        setResult({
+          success: false,
+          message:
+            "This patron account is suspended. Resolve issues before checkout.",
+        });
+        return;
+      }
+
+      if (patron.fines > 10) {
+        alerts.push(
+          `Patron has $${patron.fines.toFixed(2)} in fines.`
+        );
+      }
+
+      if (patron.current_loans >= 5) {
+        alerts.push("Patron has reached the maximum loan limit.");
+      }
+
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 14);
+
+      const dueDateStr = dueDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
-      return;
-    }
 
-    // Patron alerts
-    const alerts: string[] = [];
-
-    if (patron.status === "Suspended") {
-      setResult({
-        success: false,
-        message:
-          "This patron account is suspended. Please resolve account issues before checking out items.",
-      });
-      return;
-    }
-
-    if (patron.fines > 10) {
-      alerts.push(
-        `Patron has $${Number(patron.fines).toFixed(
-          2
-        )} in fines. Please collect payment.`
+      setPatrons((prev) =>
+        prev.map((p) =>
+          p.id === patron.id
+            ? { ...p, current_loans: p.current_loans + 1 }
+            : p
+        )
       );
-    }
 
-    if (patron.current_loans >= 5) {
-      alerts.push("Patron has reached the maximum loan limit.");
-    }
+      setResult({
+        success: true,
+        message: "Item checked out successfully!",
+        itemTitle: book.title,
+        patronName: patron.name,
+        dueDate: dueDateStr,
+        alerts: alerts.length ? alerts : undefined,
+      });
 
-    // Calculate due date (14 days)
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 14);
-
-    const dueDateStr = dueDate.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-
-
-    setPatrons((prev) =>
-      prev.map((p) =>
-        p.id === patron.id
-          ? { ...p, current_loans: p.current_loans + 1 }
-          : p
-      )
-    );
-
-    setResult({
-      success: true,
-      message: "Item checked out successfully!",
-      itemTitle: book.title,
-      patronName: patron.name,
-      dueDate: dueDateStr,
-      alerts: alerts.length > 0 ? alerts : undefined,
-    });
-
-    setBarcode("");
+      setBarcode("");
+      setPatronId("");
     } catch (err) {
-      console.error("Checkout failed:", err);
+      console.error(err);
       setResult({
         success: false,
         message: "Checkout failed. Please try again.",
