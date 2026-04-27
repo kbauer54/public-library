@@ -69,7 +69,7 @@ router.put("/:id/return", async (req, res) => {
     `, [req.params.id]);
 
     await db.query(`
-      UPDATE inventory SET copies_available = copies_available + 1
+      UPDATE inventory SET copies_available = LEAST(copies_available + 1, copies_total)
       WHERE inventory_id = (SELECT inventory_id FROM loans WHERE loan_id = ?)
     `, [req.params.id]);
 
