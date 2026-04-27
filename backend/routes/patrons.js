@@ -5,7 +5,17 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM patrons ORDER BY lastName ASC");
+    const [rows] = await db.query(`
+      SELECT 
+        patron_id AS id,
+        name,
+        email,
+        membership_date,
+        home_branch_id
+      FROM patrons
+      ORDER BY name ASC
+    `);
+
     res.json(rows);
   } catch (err) {
     console.error("Error fetching patrons:", err);
@@ -43,6 +53,7 @@ router.get("/:id/holds", async (req, res) => {
       WHERE r.patron_id = ?
       ORDER BY r.reservation_date ASC
     `, [req.params.id]);
+    
     res.json(rows);
   } catch (err) {
     console.error("Error fetching patron holds:", err);
