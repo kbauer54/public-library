@@ -135,7 +135,7 @@ export default function BookDetails() {
       toast.error("Please log in to place holds");
       return;
     }
-
+    
     try {
       const res = await api.post("/api/holds", {
         patronId: user.id,
