@@ -36,26 +36,23 @@ export default function PatronLookup() {
   const [selectedPatron, setSelectedPatron] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // ⭐ Load all patron-related data
+  // Load all patron-related data
   useEffect(() => {
-    async function loadData() {
-      const [p, l, h, b] = await Promise.all([
-        PatronsAPI.getAll(),
-        LoansAPI.getAll(),
-        HoldsAPI.getAll(),
-        BooksAPI.getAll(),
-      ]);
-
-      setPatrons(p);
-      setLoans(l);
-      setHolds(h);
-      setBooks(b);
-    }
-
-    loadData();
+    PatronsAPI.getAll().then((res) => setPatrons(res.data));
   }, []);
 
-  // ⭐ Filter patrons
+  // Load loans + holds for selected patron
+  const loadPatronData = async (patronId: string) => {
+    const [loanRes, holdRes] = await Promise.all([
+      LoansAPI.getByPatron(patronId),
+      HoldsAPI.getByPatron(patronId),
+    ]);
+
+    setLoans(loanRes.data);
+    setHolds(holdRes.data);
+  };
+
+  // Filter patrons
   const filteredPatrons = patrons.filter((patron) => {
     const q = searchQuery.toLowerCase();
     return (
@@ -65,41 +62,31 @@ export default function PatronLookup() {
     );
   });
 
-  // ⭐ Selected patron object
+  //  Selected patron object
   const patron = selectedPatron
     ? patrons.find((p) => p.id === selectedPatron)
     : null;
 
-  // ⭐ Patron loans
-  const patronLoans = patron
-    ? loans
-        .filter((item) => item.patron_id === patron.id)
-        .map((loan) => ({
-          ...loan,
-          book: books.find((b) => b.id === loan.book_id),
-        }))
-    : [];
+  // Patron loans
+  const patronLoans = loans;
 
-  // ⭐ Patron holds
-  const patronHolds = patron
-    ? holds
-        .filter((hold) => hold.patron_id === patron.id)
-        .map((hold) => ({
-          ...hold,
-          book: books.find((b) => b.id === hold.book_id),
-        }))
-    : [];
+  //  Patron holds
+  const patronHolds = holds;
 
-  // ⭐ Waive fines
+  // Waive fines
   const waiveFines = async (patronId: string) => {
-    console.log("Waiving fines for patron:", patronId);
-    // TODO: PatronsAPI.update(patronId, { fines: 0 })
+    await PatronsAPI.update(patronId, { fines: 0 });
+    const updated = await PatronsAPI.getOne(patronId);
+
+    setPatrons((prev) =>
+      prev.map((p) => (p.id === patronId ? updated.data : p))
+    );
   };
 
-  // ⭐ Renew item
-  const renewItem = async (itemId: string) => {
-    console.log("Renewing item:", itemId);
-    // TODO: LoansAPI.update(itemId, { due_date: newDate })
+  //  Renew item
+  const renewItem = async (loanId: string) => {
+    await LoansAPI.renew(loanId);
+    loadPatronData(patron.id);
   };
 
   return (
