@@ -58,8 +58,8 @@ export default function CheckOut() {
 
     try{
     // Find copy by barcode
-    const copy = copies.find((c: any) => c.isbn === barcode);
-    if (!copy) {
+    const book = books.find((c: any) => c.isbn === barcode);
+    if (!book) {
       setResult({
         success: false,
         message: "Item not found. Please check the barcode and try again.",
@@ -67,17 +67,21 @@ export default function CheckOut() {
       return;
     }
 
-    // Find book
-    const book = books.find((b: any) => b.id === copy.book_id);
-    if (!book) {
+    //Check availability using inventory/branches
+    const totalAvailable = book.branches.reduce(
+      (sum: number, br: any) => sum + br.available,
+      0
+    );
+
+    if (totalAvailable <= 0) {
       setResult({
         success: false,
-        message: "Book information not found.",
+        message: "No available copies at any branch.",
       });
       return;
     }
 
-    // Find patron (by card number OR ID)
+    // Find patron (by ID)
     const patron = patrons.find((p: any) => String(p.id) === patronId);
 
     if (!patron) {
