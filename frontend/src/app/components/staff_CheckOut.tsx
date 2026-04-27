@@ -34,14 +34,13 @@ export default function CheckOut() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [bookData, copyData, patronData] = await Promise.all([
+        const [bookData, patronData] = await Promise.all([
           BooksAPI.getAll(),
-          CopiesAPI.getAll(),
           PatronsAPI.getAll(),
         ]);
 
-        setBooks(bookData);
-        setCopies(copyData);
+
+        setBooks(bookData.data);
         setPatrons(patronData);
       } catch (err) {
         console.error("Failed to load checkout data:", err);
@@ -88,15 +87,6 @@ export default function CheckOut() {
       setResult({
         success: false,
         message: "Patron not found. Please check the card number and try again.",
-      });
-      return;
-    }
-
-    // Check if copy is available
-    if (copy.status !== "Available") {
-      setResult({
-        success: false,
-        message: `This item is currently ${copy.status.toLowerCase()} and cannot be checked out.`,
       });
       return;
     }
