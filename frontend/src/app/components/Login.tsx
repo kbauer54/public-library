@@ -146,6 +146,18 @@ export default function Login() {
                     required
                   />
                 </div>
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                  <p className="text-xs font-medium text-gray-500 uppercase">Demo Credentials</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-left justify-start text-xs"
+                    onClick={() => { setLoginEmail('dkalewe0@apple.com'); setLoginPassword('password'); }}
+                  >
+                    👤 Patron: dkalewe0@apple.com / password
+                  </Button>
+                </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Signing In...' : 'Sign In'}
                 </Button>
@@ -174,6 +186,18 @@ export default function Login() {
                     onChange={(e) => setStaffPassword(e.target.value)}
                     required
                   />
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                  <p className="text-xs font-medium text-gray-500 uppercase">Demo Credentials</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-left justify-start text-xs"
+                    onClick={() => { setStaffEmail('alongstreeth0@toplist.cz'); setStaffPassword('password'); }}
+                  >
+                    👤 Staff: alongstreeth0@toplist.cz / password
+                  </Button>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Signing In...' : 'Sign In as Staff'}
