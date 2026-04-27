@@ -111,7 +111,7 @@ export default function PatronLookup() {
 
     setPatrons((prev) =>
       prev.map((p) =>
-        Number(p.id) === Number(patronId) ? updated.data : p
+        Number(p.patron_id) === Number(patronId) ? updated.data : p
       )
     );
   };
@@ -156,9 +156,9 @@ export default function PatronLookup() {
               {filteredPatrons.map((p) => (
                 <div
                   key={p.patron_id}
-                  onClick={() => setSelectedPatron(Number(p.id))}
+                  onClick={() => setSelectedPatron(Number(p.patron_id))}
                   className={`p-3 border rounded-lg cursor-pointer ${
-                    selectedPatron === Number(p.id)
+                    selectedPatron === Number(p.patron_id )
                       ? "bg-blue-50 border-blue-300"
                       : ""
                   }`}
