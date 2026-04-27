@@ -60,4 +60,24 @@ router.post("/", async (req, res) => {
   }
 });
 
+// PUT return a loan
+router.put("/:id/return", async (req, res) => {
+  try {
+    await db.query(`
+      UPDATE loans SET status = 'returned', return_date = CURDATE()
+      WHERE loan_id = ?
+    `, [req.params.id]);
+
+    await db.query(`
+      UPDATE inventory SET copies_available = copies_available + 1
+      WHERE inventory_id = (SELECT inventory_id FROM loans WHERE loan_id = ?)
+    `, [req.params.id]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error returning loan:", err);
+    res.status(500).json({ error: "Failed to return loan" });
+  }
+});
+
 export default router;

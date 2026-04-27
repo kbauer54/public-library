@@ -7,7 +7,7 @@ import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 export default function MyAccount() {
-  const { user, loans, holds, logout } = useAuth();
+  const { user, loans, holds, setLoans, logout } = useAuth();
   const navigate = useNavigate();
 
   if (!user) {
@@ -50,6 +50,21 @@ export default function MyAccount() {
     const diffTime = due.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const handleReturn = async (loanId: string) => {
+    const token = localStorage.getItem('library_token');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/loans/${loanId}/return`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setLoans(loans.filter(l => l.id !== loanId));
+      }
+    } catch (err) {
+      console.error('Failed to return book:', err);
+    }
   };
 
   return (
@@ -197,6 +212,9 @@ export default function MyAccount() {
                         <p className="text-xs text-gray-600 mt-1">{formatDate(loan.dueDate)}</p>
                         <Button variant="link" size="sm" className="h-auto p-0 mt-1">
                           Renew
+                        </Button>
+                        <Button variant="link" size="sm" className="h-auto p-0 mt-1 text-red-600" onClick={() => handleReturn(loan.id)}>
+                          Return
                         </Button>
                       </div>
                     </div>
