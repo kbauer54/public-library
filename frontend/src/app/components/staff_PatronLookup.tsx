@@ -166,7 +166,7 @@ export default function PatronLookup() {
                   <p className="font-medium">{p.name}</p>
                   <p className="text-sm text-neutral-600">{p.email}</p>
                   <p className="text-xs text-neutral-500">
-                    Card: {p.card_number}
+                    Card: {p.patron_id}
                   </p>
                 </div>
               ))}
@@ -196,7 +196,7 @@ export default function PatronLookup() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span>Patron ID: {patron.id}</span>
+                    <span>Patron ID: {patron.patron.id}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
