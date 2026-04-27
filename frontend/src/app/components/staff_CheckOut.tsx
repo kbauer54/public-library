@@ -85,114 +85,128 @@ export default function StaffCheckOut() {
       .toUpperCase()
       .trim();
 
-  const handleCheckOut = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCheckOut = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    try {
-      if (!books.length) {
-        setResult({
-          success: false,
-          message: "Books are still loading. Please try again.",
-        });
-        return;
-      }
-
-      const normalizedInput = normalize(barcode);
-
-      const book = books.find(
-        (b) => normalize(b.isbn) === normalizedInput
-      );
-
-      if (!book) {
-        setResult({
-          success: false,
-          message: "Item not found. Please check the ISBN and try again.",
-        });
-        return;
-      }
-
-      const totalAvailable = book.branches.reduce(
-        (sum, br) => sum + br.available,
-        0
-      );
-
-      if (totalAvailable <= 0) {
-        setResult({
-          success: false,
-          message: "No available copies at any branch.",
-        });
-        return;
-      }
-
-      const patron = patrons.find(
-        (p) => String(p.id).trim() === String(patronId).trim()
-      );
-
-      if (!patron) {
-        setResult({
-          success: false,
-          message: "Patron not found. Please check the ID and try again.",
-        });
-        return;
-      }
-
-      const alerts: string[] = [];
-
-      if (patron.status === "Suspended") {
-        setResult({
-          success: false,
-          message:
-            "This patron account is suspended. Resolve issues before checkout.",
-        });
-        return;
-      }
-
-      if (patron.fines > 10) {
-        alerts.push(
-          `Patron has $${patron.fines.toFixed(2)} in fines.`
-        );
-      }
-
-      if (patron.current_loans >= 5) {
-        alerts.push("Patron has reached the maximum loan limit.");
-      }
-
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 14);
-
-      const dueDateStr = dueDate.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-
-      setPatrons((prev) =>
-        prev.map((p) =>
-          p.id === patron.id
-            ? { ...p, current_loans: p.current_loans + 1 }
-            : p
-        )
-      );
-
-      setResult({
-        success: true,
-        message: "Item checked out successfully!",
-        itemTitle: book.title,
-        patronName: patron.name,
-        dueDate: dueDateStr,
-        alerts: alerts.length ? alerts : undefined,
-      });
-
-      setBarcode("");
-      setPatronId("");
-    } catch (err) {
-      console.error(err);
+  try {
+    if (!books.length) {
       setResult({
         success: false,
-        message: "Checkout failed. Please try again.",
+        message: "Books are still loading. Please try again.",
       });
+      return;
     }
-  };
+
+    const normalizedInput = normalize(barcode);
+
+    const book = books.find((b) => normalize(b.isbn) === normalizedInput);
+
+    if (!book) {
+      setResult({
+        success: false,
+        message: "Item not found. Please check the ISBN and try again.",
+      });
+      return;
+    }
+
+    const patron = patrons.find(
+      (p) => String(p.id).trim() === String(patronId).trim()
+    );
+
+    if (!patron) {
+      setResult({
+        success: false,
+        message: "Patron not found.",
+      });
+      return;
+    }
+
+    if (patron.status === "Suspended") {
+      setResult({
+        success: false,
+        message: "This patron account is suspended.",
+      });
+      return;
+    }
+
+    const alerts: string[] = [];
+
+    if (patron.fines > 10) {
+      alerts.push(`Patron has $${patron.fines.toFixed(2)} in fines.`);
+    }
+
+    if (patron.current_loans >= 5) {
+      alerts.push("Patron has reached the maximum loan limit.");
+    }
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 14);
+
+    const dueDateStr = dueDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    // 🔥 BACKEND CALL (now valid because function is async)
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bookId: book.id,
+        patronId: patron.id,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      setResult({
+        success: false,
+        message: data.message || "Checkout failed",
+      });
+      return;
+    }
+
+    const dueDate = new Date(); 
+      dueDate.setDate(dueDate.getDate() + 14); 
+    const dueDateStr = dueDate.toLocaleDateString("en-US", 
+      { 
+        year: "numeric", 
+        month: "long", 
+        day: "numeric",
+      }
+    );
+
+    setPatrons((prev) =>
+      prev.map((p) =>
+        p.id === patron.id
+          ? { ...p, current_loans: p.current_loans + 1 }
+          : p
+      )
+    );
+
+    setResult({
+      success: true,
+      message: "Item checked out successfully!",
+      itemTitle: book.title,
+      patronName: patron.name,
+      dueDate: dueDateStr,
+      alerts: alerts.length ? alerts : undefined,
+    });
+
+    setBarcode("");
+    setPatronId("");
+  } catch (err) {
+    console.error(err);
+    setResult({
+      success: false,
+      message: "Checkout failed. Please try again.",
+    });
+  }
+};
 
   if (loading) {
     return (
