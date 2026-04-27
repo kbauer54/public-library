@@ -148,7 +148,7 @@ export default function StaffCheckOut() {
       day: "numeric",
     });
 
-    // 🔥 BACKEND CALL (now valid because function is async)
+    // BACKEND CALL (now valid because function is async)
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: {
@@ -169,16 +169,6 @@ export default function StaffCheckOut() {
       });
       return;
     }
-
-    const dueDate = new Date(); 
-      dueDate.setDate(dueDate.getDate() + 14); 
-    const dueDateStr = dueDate.toLocaleDateString("en-US", 
-      { 
-        year: "numeric", 
-        month: "long", 
-        day: "numeric",
-      }
-    );
 
     setPatrons((prev) =>
       prev.map((p) =>
