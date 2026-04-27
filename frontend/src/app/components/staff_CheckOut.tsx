@@ -58,7 +58,7 @@ export default function CheckOut() {
 
     try{
     // Find copy by barcode
-    const copy = copies.find((c: any) => c.barcode === barcode);
+    const copy = copies.find((c: any) => c.isbn === barcode);
     if (!copy) {
       setResult({
         success: false,
@@ -78,9 +78,7 @@ export default function CheckOut() {
     }
 
     // Find patron (by card number OR ID)
-    const patron = patrons.find(
-      (p: any) => p.card_number === patronId || String(p.id) === patronId
-    );
+    const patron = patrons.find((p: any) => String(p.id) === patronId);
 
     if (!patron) {
       setResult({
@@ -194,7 +192,7 @@ export default function CheckOut() {
             <div>
               <Label htmlFor="patronId" className="flex items-center gap-2 mb-2">
                 <User className="w-4 h-4" />
-                Patron Card Number
+                Patron ID
               </Label>
               <Input
                 id="patronId"
@@ -206,7 +204,7 @@ export default function CheckOut() {
                 className="text-base"
               />
               <p className="text-sm text-neutral-500 mt-1">
-                Example: LIB1001, LIB1002, LIB1003
+                Example: 1, 2, 3
               </p>
             </div>
 
@@ -214,7 +212,7 @@ export default function CheckOut() {
             <div>
               <Label htmlFor="barcode" className="flex items-center gap-2 mb-2">
                 <ScanLine className="w-4 h-4" />
-                Item Barcode
+                ISBN
               </Label>
               <Input
                 id="barcode"
@@ -226,7 +224,7 @@ export default function CheckOut() {
                 className="text-base"
               />
               <p className="text-sm text-neutral-500 mt-1">
-                Example: 100001, 100004, 100006
+                Example: 107045821X, 9780143127796
               </p>
             </div>
 
