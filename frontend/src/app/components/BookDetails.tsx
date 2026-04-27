@@ -119,18 +119,36 @@ export default function BookDetails() {
 
   const callNumber = getCallNumber(book.category, book.author);
 
-  const handleBorrow = () => {
+  const handleBorrow = async () => {
     if (!user) {
       toast.error('Please log in to borrow books');
       return;
     }
     if (availableCopies === 0) {
-      toast.error('This book is currently unavailable');
+      toast.error('No copies available');
       return;
     }
-    toast.success(`"${book.title}" has been added to your loans`);
+    try {
+      const token = localStorage.getItem('library_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/loans`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ book_id: book.id, patron_id: user.id })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Borrowed! Due date: ${data.due_date}`);
+      } else {
+        toast.error('Failed to borrow book');
+      }
+    } catch (err) {
+      toast.error('Failed to borrow book');
+    }
   };
-
+  
   const handlePlaceHold = async (branchName?: string) => {
     if (!user) {
       toast.error("Please log in to place holds");
