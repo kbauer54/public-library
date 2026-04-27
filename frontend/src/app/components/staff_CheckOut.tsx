@@ -8,6 +8,7 @@ import { Label } from "../components/ui/label";
 import { BooksAPI } from "../../api/books";
 import { CopiesAPI } from "../../api/copies";
 import { PatronsAPI } from "../../api/patrons";
+import { LoansAPI } from "../../api/loans";
 
 interface CheckOutResult {
   success: boolean;
@@ -55,6 +56,7 @@ export default function CheckOut() {
   const handleCheckOut = (e: React.FormEvent) => {
     e.preventDefault();
 
+    try{
     // Find copy by barcode
     const copy = copies.find((c: any) => c.barcode === barcode);
     if (!copy) {
@@ -131,6 +133,21 @@ export default function CheckOut() {
       day: "numeric",
     });
 
+    //Update UI state
+    setCopies((prev) =>
+      prev.map((c) =>
+        c.barcode === barcode ? { ...c, status: "Checked Out" } : c
+      )
+    );
+
+    setPatrons((prev) =>
+      prev.map((p) =>
+        p.id === patron.id
+          ? { ...p, current_loans: p.current_loans + 1 }
+          : p
+      )
+    );
+
     setResult({
       success: true,
       message: "Item checked out successfully!",
@@ -141,6 +158,13 @@ export default function CheckOut() {
     });
 
     setBarcode("");
+    } catch (err) {
+      console.error("Checkout failed:", err);
+      setResult({
+        success: false,
+        message: "Checkout failed. Please try again.",
+      });
+    }
   };
 
   if (loading) {
