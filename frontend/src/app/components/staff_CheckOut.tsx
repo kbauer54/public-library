@@ -38,7 +38,7 @@ export default function CheckOut() {
         ]);
 
 
-        setBooks(bookData.data);
+        setBooks(bookData.data?.data ?? bookData.data ?? []);
         setPatrons(patronData);
       } catch (err) {
         console.error("Failed to load checkout data:", err);
@@ -49,7 +49,21 @@ export default function CheckOut() {
 
     loadData();
   }, []);
+  
+    const normalizeISBN = (val: any) =>
+      String(val ?? "")
+        .replace(/[^0-9Xx]/g, "") // remove EVERYTHING except digits/X
+        .toUpperCase()
+        .trim();
 
+    const normalizedInput = normalizeISBN(barcode);
+
+    console.log("INPUT:", normalizedInput);
+    console.log("BOOK ISBNs:", books.map((b: any) => normalizeISBN(b.isbn)));
+
+    const book = books.find(
+      (b: any) => normalizeISBN(b.isbn) === normalizedInput
+    );
   const handleCheckOut = (e: React.FormEvent) => {
     e.preventDefault();
 
