@@ -507,10 +507,10 @@ export default function Catalog() {
                           </div>
 
                           <div className="flex flex-wrap gap-2">
-                            <Button onClick={() => handleBorrow(book)} disabled={!book.available}>
+                            <Button onClick={(e) => { e.stopPropagation(); handleBorrow(book); }} disabled={!book.available}>
                               Borrow
                             </Button>
-                            <Button variant="secondary" onClick={() => handlePlaceHold(book)}>
+                            <Button variant="secondary" onClick={(e) => { e.stopPropagation(); handlePlaceHold(book); }}>
                               Place Hold
                             </Button>
                           </div>

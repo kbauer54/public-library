@@ -59,12 +59,43 @@ router.get("/", async (req, res) => {
 // GET single book
 router.get("/:id", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM books WHERE book_id = ?", [
-      req.params.id,
-    ]);
-    if (rows.length === 0)
+    const [books] = await db.query(`
+      SELECT 
+        b.book_id AS id,
+        b.title,
+        b.isbn,
+        b.publication_year AS year,
+        TRIM(g.genre_name) AS category,
+        GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author
+      FROM books b
+      LEFT JOIN genres g ON b.genre_id = g.genre_id
+      LEFT JOIN bookauthors ba ON b.book_id = ba.book_id
+      LEFT JOIN authors a ON ba.author_id = a.author_id
+      WHERE b.book_id = ?
+      GROUP BY b.book_id, b.title, b.isbn, b.publication_year, g.genre_name
+    `, [req.params.id]);
+
+    if (books.length === 0)
       return res.status(404).json({ error: "Book not found" });
-    res.json(rows[0]);
+
+    const book = books[0];
+
+    const [inventory] = await db.query(`
+      SELECT br.name, i.copies_available AS available, i.copies_total AS total
+      FROM inventory i
+      JOIN branches br ON i.branch_id = br.branch_id
+      WHERE i.book_id = ?
+    `, [req.params.id]);
+
+    res.json({
+      ...book,
+      format: "Book",
+      description: "",
+      coverImage: book.isbn ? `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg` : "",
+      subjects: [],
+      available: inventory.reduce((sum, b) => sum + b.available, 0) > 0,
+      branches: inventory,
+    });
   } catch (err) {
     console.error("Error fetching book:", err);
     res.status(500).json({ error: "Failed to load book" });
