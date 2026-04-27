@@ -2,9 +2,6 @@ import { useState, useEffect } from "react";
 import {
   Search,
   Mail,
-  Phone,
-  CreditCard,
-  AlertTriangle,
 } from "lucide-react";
 
 import { Input } from "../components/ui/input";
@@ -38,7 +35,7 @@ export default function PatronLookup() {
   // ----------------------------
   useEffect(() => {
     PatronsAPI.getAll().then((res) => {
-      const data = res.data?.data ?? res.data ?? [];
+      const data = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
       setPatrons(data);
     });
   }, []);
@@ -192,34 +189,23 @@ export default function PatronLookup() {
               <div className="bg-white border rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">{patron.name}</h2>
 
-                <div className="grid gap-3">
+                <div className="grid gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4" />
-                    {patron.email}
+                    {patron.email ?? "No email"}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    {patron.phone}
+                    <span>Patron ID: {patron.id}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    {patron.card_number}
+                    <span>Member since: {patron.membership_date ?? "N/A"}</span>
                   </div>
 
-                  {patron.fines > 0 && (
-                    <div className="flex items-center gap-2 text-red-600">
-                      <AlertTriangle className="w-4 h-4" />
-                      Fines: ${patron.fines}
-                      <Button
-                        size="sm"
-                        onClick={() => waiveFines(patron.id)}
-                      >
-                        Waive
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span>Branch ID: {patron.home_branch_id ?? "N/A"}</span>
+                  </div>
                 </div>
               </div>
 
@@ -236,9 +222,9 @@ export default function PatronLookup() {
                       className="flex justify-between border p-3 rounded mb-2"
                     >
                       <div>
-                        <p>{loan.book?.title}</p>
+                        <p>{loan.bookTitle}</p>
                         <p className="text-sm text-neutral-500">
-                          Due: {new Date(loan.due_date).toLocaleDateString()}
+                          Due: {new Date(loan.dueDate).toLocaleDateString()}
                         </p>
                       </div>
 
@@ -262,7 +248,7 @@ export default function PatronLookup() {
                 ) : (
                   holds.map((hold) => (
                     <div key={hold.id} className="border p-3 rounded">
-                      {hold.book?.title} — {hold.status}
+                      {hold.bookTitle} — {hold.status}
                     </div>
                   ))
                 )}
