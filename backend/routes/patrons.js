@@ -55,7 +55,7 @@ router.get("/:id/holds", async (req, res) => {
       ORDER BY r.reservation_date ASC
     `, [req.params.id]);
     
-    res.json({ data: rows });
+    res.json(rows);
   } catch (err) {
     console.error("Error fetching patron holds:", err);
     res.status(500).json({ error: "Failed to load holds" });
