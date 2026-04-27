@@ -47,24 +47,34 @@ export default function StaffCheckOut() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [bookData, patronData] = await Promise.all([
-          BooksAPI.getAll(),
-          PatronsAPI.getAll(),
-        ]);
+  async function loadData() {
+    try {
+      const [bookData, patronData] = await Promise.all([
+        BooksAPI.getAll(),
+        PatronsAPI.getAll(),
+      ]);
 
-        setBooks(bookData.data?.data ?? bookData.data ?? []);
-        setPatrons(patronData.data ?? patronData);
-      } catch (err) {
-        console.error("Failed to load checkout data:", err);
-      } finally {
-        setLoading(false);
-      }
+      // BooksAPI.getAll() already returns the array
+      setBooks(Array.isArray(bookData) ? bookData : []);
+
+      // PatronsAPI returns { data: [...] }
+      const patronsArray = Array.isArray(patronData?.data)
+        ? patronData.data
+        : [];
+
+      setPatrons(patronsArray);
+    } catch (err) {
+      console.error("Failed to load checkout data:", err);
+      setBooks([]);
+      setPatrons([]);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    loadData();
-  }, []);
+  loadData();
+}, []);
+
 
   const normalize = (v: any) =>
     String(v ?? "")
@@ -213,7 +223,7 @@ export default function StaffCheckOut() {
               <Input
                 id="patronId"
                 type="text"
-                placeholder="Enter or scan ISBN"
+                placeholder="Enter or scan patron ID"
                 value={patronId}
                 onChange={(e) => setPatronId(e.target.value)}
                 required
